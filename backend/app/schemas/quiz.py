@@ -1,8 +1,10 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.quiz import MCQ_OPTION_COUNT
+from app.schemas.syllabus import SubtopicOut
 
-MAX_ANSWERS_PER_SUBMISSION = 200
+# The number of questions served per quiz, and so the most answers one submission can hold.
+QUIZ_LENGTH = 10
 
 
 class MCQQuestionPublicOut(BaseModel):
@@ -21,10 +23,38 @@ class MCQQuestionPublicOut(BaseModel):
     options: list[str]
 
 
+class QuizOut(BaseModel):
+    """A quiz for one sub-topic: up to ``QUIZ_LENGTH`` questions without their answers."""
+
+    topic: SubtopicOut
+    questions: list[MCQQuestionPublicOut]
+
+
+class QuizTopicProgressOut(BaseModel):
+    """One sub-topic in the quiz topic selector, with the current user's progress."""
+
+    id: int
+    paper: int = Field(ge=1, le=2)
+    section_code: str
+    spec_code: str
+    title: str
+    slug: str
+    # Questions available for this sub-topic; 0 means there is no quiz to play yet.
+    question_count: int = Field(ge=0)
+    attempts_count: int = Field(ge=0)
+    # Score and length of the user's best attempt (highest percentage); null if never attempted.
+    best_score: int | None = None
+    total_questions: int | None = None
+
+
+class QuizTopicsResponse(BaseModel):
+    topics: list[QuizTopicProgressOut] = Field(default_factory=list)
+
+
 class QuizSubmissionIn(BaseModel):
     """The student's chosen option for each question: ``{question_id: selected_index}``."""
 
-    answers: dict[int, int] = Field(min_length=1, max_length=MAX_ANSWERS_PER_SUBMISSION)
+    answers: dict[int, int] = Field(min_length=1, max_length=QUIZ_LENGTH)
 
     @field_validator("answers")
     @classmethod

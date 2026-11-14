@@ -29,6 +29,8 @@ class CodingChallengeListOut(BaseModel):
     difficulty: Difficulty
     # True when the current user has at least one passing submission.
     solved: bool = False
+    # How many times the current user has submitted this challenge.
+    attempts_count: int = Field(default=0, ge=0)
 
 
 class CodingChallengeDetailOut(BaseModel):
@@ -46,6 +48,8 @@ class CodingChallengeDetailOut(BaseModel):
     starter_code: str
     test_cases: list[TestCaseSchema]
     solved: bool = False
+    # The code from the current user's most recent submission; null if never attempted.
+    latest_code: str | None = None
 
 
 class ChallengeSubmissionIn(BaseModel):

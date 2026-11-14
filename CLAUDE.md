@@ -15,7 +15,7 @@ multiple-choice quizzes, notes, exam question packs, past papers and Python codi
 ```
 backend/
   app/
-    main.py          FastAPI app, CORS, lifespan (creates tables), GET /api/health
+    main.py          FastAPI app, CORS, lifespan (creates tables, seeds if empty), GET /api/health
     api/deps.py      DbSession and CurrentUser dependency aliases for endpoint signatures
     api/v1/          Endpoint routers; router.py aggregates them, mounted at /api/v1
     core/config.py   Settings (pydantic-settings); env vars or backend/.env override defaults
@@ -24,9 +24,12 @@ backend/
     models/          SQLAlchemy ORM models (import each module in models/__init__.py)
     schemas/         Pydantic v2 request/response schemas
     services/        Business logic; routers stay thin and call into services
+    services/seed.py seed_database(): loads the syllabus and sample content into an empty DB
+    services/seed_data/  The seeded content: syllabus, MCQ bank (per paper), challenges
   tests/             pytest + pytest-asyncio + httpx (ASGITransport)
 frontend/
-  public/            Static assets served as-is, including all PDF content
+  public/            Static assets served as-is
+  public/resources/  PDF content (worksheets/, notes/, exam-packs/, past-papers/)
   src/lib/api.ts     Shared axios instance (base URL from VITE_API_URL)
   src/               React application
 ```
@@ -38,11 +41,19 @@ frontend/
   and the app refuses to start with that default when `ENVIRONMENT=production`. Signup and login
   take JSON bodies and return a `Token`; the client sends it as `Authorization: Bearer <token>`.
   Protect an endpoint by adding a `current_user: CurrentUser` parameter. Syllabus and resource
-  endpoints are public; `/auth/me` and `/dashboard/metrics` require a token.
+  endpoints are public; `/auth/me`, `/dashboard/metrics` and every quiz and challenge endpoint
+  require a token.
 - API routes (all under `/api/v1`): `auth/signup`, `auth/login`, `auth/me`, `syllabus/tree`,
   `resources/worksheets/{spec_code}`, `resources/notes/{spec_code}`,
   `resources/exam-questions/{section_slug}` (section code with a hyphen, e.g. `1-3`),
-  `resources/past-papers`, `dashboard/metrics`.
+  `resources/past-papers`, `quizzes/topics`, `quizzes/{spec_code}`,
+  `quizzes/{spec_code}/submit`, `challenges`, `challenges/{slug}`, `challenges/{slug}/submit`,
+  `dashboard/metrics`.
+- Seeding: on startup the app creates missing tables and, only if there are no syllabus topics,
+  loads the 24 OCR H446 sub-topics, sample resources, the MCQ bank and the coding challenges.
+  It never changes a database that already has topics, so edits to `services/seed_data/` reach
+  an existing database only if you delete `alcsr.db` (development) or migrate the data.
+  Every seeded PDF link points at one of four sample files in `frontend/public/resources/`.
 - CORS: only `http://localhost:5173` and `http://127.0.0.1:5173` are allowed by default
   (`CORS_ORIGINS`). The Vite dev server is pinned to port 5173 with `strictPort` to match.
 - Content taxonomy: content is organised by OCR H446 paper → section → sub-topic, for example
@@ -59,23 +70,29 @@ These are non-negotiable. Do not work around them, even temporarily.
    them only with a plain anchor:
 
    ```tsx
-   <a href="/pdfs/worksheets/1.1.1/worksheet-1-questions.pdf" target="_blank" rel="noopener noreferrer">
+   <a href="/resources/worksheets/sample-worksheet.pdf" target="_blank" rel="noopener noreferrer">
      Worksheet 1 Questions - CPU Components and Registers
    </a>
    ```
 
-   Never build a custom reader modal, embedded viewer, iframe or PDF.js renderer for them.
+   Never build a custom reader modal, embedded viewer, iframe or PDF.js renderer for them. The
+   `href` is the `file_url` returned by the API; the files live in `frontend/public/resources/`.
 
 2. **MCQ grading happens strictly server-side.** Correct answers must never appear in any client
    network payload before the student submits. Schemas that return questions to the client must
    not include the correct option or anything it can be derived from (no `is_correct` flags, no
    answer hashes, no ordering that leaks it). The client submits the chosen options; the server
    grades them and only then returns the score and correct answers. Use separate Pydantic schemas
-   for the "question as shown" and "result after grading" shapes.
+   for the "question as shown" and "result after grading" shapes. A quiz is up to 10 random
+   questions for a sub-topic; the client posts `{question_id: selected_index}` and the server
+   grades whichever of that topic's questions were submitted.
 
 3. **Coding challenges execute client-side in Pyodide.** Student code runs only in the browser's
    WebAssembly sandbox. The backend never executes, evaluates or imports user-submitted code (no
    `exec`, `eval`, `subprocess`, containers or remote runners), which removes server RCE risk.
+   The browser runs the challenge's `test_cases` and posts `code`, `passed`, `passed_tests` and
+   `total_tests`; the server only stores them. `total_tests` must equal the number of test cases
+   for the challenge, and `passed` must be true exactly when every test passed.
 
 ## Code style
 

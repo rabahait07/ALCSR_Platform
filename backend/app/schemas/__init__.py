@@ -11,8 +11,11 @@ from app.schemas.dashboard import DashboardMetricsResponse, PaperProgressOut, Re
 from app.schemas.quiz import (
     MCQQuestionPublicOut,
     QuestionResultOut,
+    QuizOut,
     QuizResultOut,
     QuizSubmissionIn,
+    QuizTopicProgressOut,
+    QuizTopicsResponse,
 )
 from app.schemas.resource import (
     ExamSectionResourcesResponse,
@@ -43,8 +46,11 @@ __all__ = [
     "PastPaperRowOut",
     "PastPapersResponse",
     "QuestionResultOut",
+    "QuizOut",
     "QuizResultOut",
     "QuizSubmissionIn",
+    "QuizTopicProgressOut",
+    "QuizTopicsResponse",
     "RecentActivityOut",
     "ResourceItemOut",
     "SubtopicOut",

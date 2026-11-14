@@ -7,13 +7,9 @@ from app.models.quiz_attempt import MCQAttempt
 from app.models.topic import PAPER_TITLES, SyllabusTopic
 from app.models.user import User
 from app.schemas.dashboard import DashboardMetricsResponse, PaperProgressOut, RecentActivityOut
+from app.services.scoring import percentage
 
 RECENT_ACTIVITY_LIMIT = 8
-
-
-def percentage(part: int, whole: int) -> float:
-    """``part`` as a percentage of ``whole`` to one decimal place; 0 when ``whole`` is 0."""
-    return round(part / whole * 100, 1) if whole else 0.0
 
 
 async def _topic_counts_by_paper(db: AsyncSession) -> dict[int, int]:
