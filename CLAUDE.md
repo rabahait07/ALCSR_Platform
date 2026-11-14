@@ -81,6 +81,13 @@ These are non-negotiable. Do not work around them, even temporarily.
   `X | None`.
 - Clean imports: three groups separated by a blank line (standard library, third-party, `app.*`),
   alphabetised within each group, absolute imports only, no wildcard imports, no unused imports.
+- Relationships are not lazy-loaded in async code (it raises `MissingGreenlet`). Load them
+  explicitly with `selectinload()` / `joinedload()`, or query the related table directly.
+- Enum-like columns (`resource_type`, `difficulty`) are plain strings guarded by CHECK
+  constraints. Their allowed values live in `app/models/enums.py`; adding a value means updating
+  the enum and migrating the constraint.
+- Questions are returned to the client only through `MCQQuestionPublicOut`. Never add
+  `correct_index` or `explanation` to it or return `MCQQuestion` data any other way before grading.
 - Read configuration through `app.core.config.settings`; never call `os.environ` directly.
 - Every endpoint declares a `response_model` (or a typed return) built from `app/schemas`.
 
