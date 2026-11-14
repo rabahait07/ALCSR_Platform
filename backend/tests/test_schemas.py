@@ -197,6 +197,7 @@ def test_syllabus_tree_builds_from_orm_topics() -> None:
                     {
                         "section_code": topic.section_code,
                         "section_title": topic.section_title,
+                        "section_slug": topic.section_slug,
                         "subtopics": [SubtopicOut.model_validate(topic)],
                     }
                 ],
@@ -216,15 +217,6 @@ def test_resource_schemas_build_from_orm_resources() -> None:
         file_url="/pdfs/worksheets/1.1.1/worksheet-1-questions.pdf",
         display_order=1,
     )
-    question_paper = StaticResource(
-        id=2,
-        resource_type="past_paper_qp",
-        paper=1,
-        exam_series="June 2024",
-        title="June 2024 Paper 1 QP",
-        file_url="/pdfs/past-papers/june-2024-paper-1-qp.pdf",
-        display_order=0,
-    )
     topic = SubtopicOut(id=1, spec_code="1.1.1", title="Processor", slug="processor")
 
     topic_resources = TopicResourcesResponse(
@@ -235,17 +227,18 @@ def test_resource_schemas_build_from_orm_resources() -> None:
             PastPaperRowOut(
                 paper=1,
                 exam_series="June 2024",
-                question_paper=ResourceItemOut.model_validate(question_paper),
+                question_paper_url="/pdfs/past-papers/june-2024-paper-1-qp.pdf",
             )
         ]
     )
     exam_section = ExamSectionResourcesResponse(
-        paper=1, section_code="1.3", section_title="1.3 Exchanging data"
+        paper=1, section_code="1.3", section_title="1.3 Exchanging data", section_slug="1-3"
     )
 
     assert topic_resources.worksheets[0].resource_type is ResourceType.WORKSHEET
-    assert topic_resources.worksheet_answers == []
-    assert past_papers.paper_1[0].mark_scheme is None
+    assert topic_resources.answers == []
+    assert set(topic_resources.model_dump(exclude_unset=True)) == {"topic", "worksheets"}
+    assert past_papers.paper_1[0].mark_scheme_url is None
     assert past_papers.paper_2 == []
     assert exam_section.exam_packs == []
 
@@ -319,16 +312,18 @@ def test_challenge_submission_rejects_inconsistent_results(
 
 def test_dashboard_response_round_trips_through_json() -> None:
     dashboard = DashboardMetricsResponse(
-        quizzes_completed=4,
-        average_quiz_percentage=72.5,
+        topics_practiced=3,
+        total_topics=24,
+        average_quiz_accuracy=72.5,
         challenges_solved=1,
-        challenges_total=10,
-        paper_progress=[
-            PaperProgressOut(
-                paper=1, title="Computer Systems", topics_total=16, topics_attempted=3,
-                average_quiz_percentage=72.5, challenges_total=4, challenges_solved=1,
-            )
-        ],
+        total_challenges=10,
+        paper1_progress=PaperProgressOut(
+            paper=1, title="Computer Systems", topics_practiced=3, total_topics=16, percentage=18.8
+        ),
+        paper2_progress=PaperProgressOut(
+            paper=2, title="Algorithms and Programming", topics_practiced=0, total_topics=8,
+            percentage=0.0,
+        ),
         recent_activity=[
             RecentActivityOut(
                 activity_type="quiz", title="Structure and function of the processor",

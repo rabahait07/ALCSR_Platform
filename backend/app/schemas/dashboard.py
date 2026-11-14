@@ -18,23 +18,25 @@ class RecentActivityOut(BaseModel):
 
 
 class PaperProgressOut(BaseModel):
-    """The current user's progress across one paper's sub-topics."""
+    """Share of one paper's sub-topics the current user has attempted a quiz on."""
 
     paper: int = Field(ge=1, le=2)
     title: str
-    topics_total: int = Field(ge=0)
-    # Sub-topics with at least one completed quiz attempt.
-    topics_attempted: int = Field(ge=0)
-    # Mean of the user's best quiz percentage per attempted sub-topic; 0 when none attempted.
-    average_quiz_percentage: float = Field(ge=0, le=100)
-    challenges_total: int = Field(ge=0)
-    challenges_solved: int = Field(ge=0)
+    topics_practiced: int = Field(ge=0)
+    total_topics: int = Field(ge=0)
+    percentage: float = Field(ge=0, le=100)
 
 
 class DashboardMetricsResponse(BaseModel):
-    quizzes_completed: int = Field(ge=0)
-    average_quiz_percentage: float = Field(ge=0, le=100)
+    # Distinct sub-topics with at least one quiz attempt, out of all sub-topics.
+    topics_practiced: int = Field(ge=0)
+    total_topics: int = Field(ge=0)
+    # Correct answers as a percentage of questions answered across every quiz attempt.
+    average_quiz_accuracy: float = Field(ge=0, le=100)
+    # Distinct challenges with at least one passing submission, out of all challenges.
     challenges_solved: int = Field(ge=0)
-    challenges_total: int = Field(ge=0)
-    paper_progress: list[PaperProgressOut] = Field(default_factory=list)
+    total_challenges: int = Field(ge=0)
+    paper1_progress: PaperProgressOut
+    paper2_progress: PaperProgressOut
+    # Quiz attempts and challenge submissions combined, newest first.
     recent_activity: list[RecentActivityOut] = Field(default_factory=list)

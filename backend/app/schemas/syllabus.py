@@ -17,6 +17,8 @@ class MajorSectionOut(BaseModel):
 
     section_code: str
     section_title: str
+    # URL form of section_code ("1.3" -> "1-3"), used by the exam-questions endpoint.
+    section_slug: str
     subtopics: list[SubtopicOut] = Field(default_factory=list)
 
 

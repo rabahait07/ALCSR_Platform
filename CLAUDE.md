@@ -16,9 +16,11 @@ multiple-choice quizzes, notes, exam question packs, past papers and Python codi
 backend/
   app/
     main.py          FastAPI app, CORS, lifespan (creates tables), GET /api/health
+    api/deps.py      DbSession and CurrentUser dependency aliases for endpoint signatures
     api/v1/          Endpoint routers; router.py aggregates them, mounted at /api/v1
     core/config.py   Settings (pydantic-settings); env vars or backend/.env override defaults
     core/database.py Async engine, AsyncSessionLocal, Base, get_db dependency
+    core/security.py Password hashing, JWT creation, get_current_user dependency
     models/          SQLAlchemy ORM models (import each module in models/__init__.py)
     schemas/         Pydantic v2 request/response schemas
     services/        Business logic; routers stay thin and call into services
@@ -33,7 +35,14 @@ frontend/
   `DATABASE_URL` to a PostgreSQL URL to switch; `postgres://` and `postgresql://` are rewritten to
   the `postgresql+asyncpg://` driver automatically. No code changes are needed.
 - Auth: HS256 JWT access tokens, valid for 1440 minutes. `SECRET_KEY` has a development default
-  and the app refuses to start with that default when `ENVIRONMENT=production`.
+  and the app refuses to start with that default when `ENVIRONMENT=production`. Signup and login
+  take JSON bodies and return a `Token`; the client sends it as `Authorization: Bearer <token>`.
+  Protect an endpoint by adding a `current_user: CurrentUser` parameter. Syllabus and resource
+  endpoints are public; `/auth/me` and `/dashboard/metrics` require a token.
+- API routes (all under `/api/v1`): `auth/signup`, `auth/login`, `auth/me`, `syllabus/tree`,
+  `resources/worksheets/{spec_code}`, `resources/notes/{spec_code}`,
+  `resources/exam-questions/{section_slug}` (section code with a hyphen, e.g. `1-3`),
+  `resources/past-papers`, `dashboard/metrics`.
 - CORS: only `http://localhost:5173` and `http://127.0.0.1:5173` are allowed by default
   (`CORS_ORIGINS`). The Vite dev server is pinned to port 5173 with `strictPort` to match.
 - Content taxonomy: content is organised by OCR H446 paper → section → sub-topic, for example
@@ -88,6 +97,9 @@ These are non-negotiable. Do not work around them, even temporarily.
   the enum and migrating the constraint.
 - Questions are returned to the client only through `MCQQuestionPublicOut`. Never add
   `correct_index` or `explanation` to it or return `MCQQuestion` data any other way before grading.
+- Timestamp columns use `app.models.types.UTCDateTime`, so values are always timezone-aware UTC.
+- bcrypt calls (`get_password_hash`, `verify_password`) are slow on purpose; call them through
+  `run_in_threadpool` from async code, as `app/services/auth.py` does.
 - Read configuration through `app.core.config.settings`; never call `os.environ` directly.
 - Every endpoint declares a `response_model` (or a typed return) built from `app/schemas`.
 

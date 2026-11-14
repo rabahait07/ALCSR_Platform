@@ -1,15 +1,11 @@
-from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import configure_mappers
-from sqlalchemy.pool import StaticPool
 
-from app.core.database import build_engine
 from app.models import (
     Base,
     ChallengeSubmission,
@@ -32,16 +28,6 @@ EXPECTED_TABLES = {
     "coding_challenges",
     "challenge_submissions",
 }
-
-
-@pytest_asyncio.fixture
-async def session() -> AsyncGenerator[AsyncSession, None]:
-    engine = build_engine("sqlite+aiosqlite:///:memory:", poolclass=StaticPool)
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    async with async_sessionmaker(engine, expire_on_commit=False)() as db_session:
-        yield db_session
-    await engine.dispose()
 
 
 def make_topic(spec_code: str = "1.1.1") -> SyllabusTopic:
@@ -131,10 +117,18 @@ async def test_full_object_graph_round_trips(session: AsyncSession) -> None:
     assert stored_challenge.test_cases[0]["expected"] == 5
     assert stored_worksheet.display_order == 0
     assert stored_worksheet.topic_id == stored_question.topic_id
-    assert isinstance(stored_user.created_at, datetime)
-    assert isinstance(stored_attempt.completed_at, datetime)
-    assert isinstance(stored_submission.submitted_at, datetime)
+    for timestamp in (
+        stored_user.created_at,
+        stored_attempt.completed_at,
+        stored_submission.submitted_at,
+    ):
+        assert isinstance(timestamp, datetime)
+        assert timestamp.tzinfo == timezone.utc
     assert stored_submission.passed is True
+
+
+def test_section_slug_is_derived_from_section_code() -> None:
+    assert make_topic().section_slug == "1-1"
 
 
 async def test_past_paper_resource_needs_no_topic(session: AsyncSession) -> None:

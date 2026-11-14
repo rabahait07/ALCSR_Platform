@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.timeutils import utc_now
+from app.models.types import UTCDateTime
 
 if TYPE_CHECKING:
     from app.models.challenge_submission import ChallengeSubmission
@@ -22,7 +23,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
+        UTCDateTime, default=utc_now, nullable=False
     )
 
     quiz_attempts: Mapped[list[MCQAttempt]] = relationship(

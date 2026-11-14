@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.timeutils import utc_now
+from app.models.types import UTCDateTime
 
 if TYPE_CHECKING:
     from app.models.challenge import CodingChallenge
@@ -40,7 +41,7 @@ class ChallengeSubmission(Base):
     passed_tests: Mapped[int] = mapped_column(Integer, nullable=False)
     total_tests: Mapped[int] = mapped_column(Integer, nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
+        UTCDateTime, default=utc_now, nullable=False
     )
 
     user: Mapped[User] = relationship(back_populates="challenge_submissions")

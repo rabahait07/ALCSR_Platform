@@ -47,5 +47,18 @@ class SyllabusTopic(Base):
         back_populates="topic", cascade="all, delete-orphan", passive_deletes=True
     )
 
+    @property
+    def section_slug(self) -> str:
+        """URL form of the section code, e.g. "1.3" becomes "1-3"."""
+        return section_code_to_slug(self.section_code)
+
     def __repr__(self) -> str:
         return f"<SyllabusTopic id={self.id} spec_code={self.spec_code!r}>"
+
+
+def section_code_to_slug(section_code: str) -> str:
+    return section_code.replace(".", "-")
+
+
+def section_slug_to_code(section_slug: str) -> str:
+    return section_slug.replace("-", ".")
