@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    @apply bg-obsidian;
+  }
+
+  body {
+    @apply min-h-screen bg-obsidian font-sans text-content-primary antialiased;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  ::selection {
+    @apply bg-brand/40;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-light ring-offset-2 ring-offset-obsidian;
+  }
+}

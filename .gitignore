@@ -7,3 +7,5 @@ venv/
 .venv/
 alcsr.db
 .DS_Store
+.pytest_cache/
+*.tsbuildinfo
