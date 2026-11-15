@@ -30,8 +30,14 @@ backend/
 frontend/
   public/            Static assets served as-is
   public/resources/  PDF content (worksheets/, notes/, exam-packs/, past-papers/)
-  src/lib/api.ts     Shared axios instance (base URL from VITE_API_URL)
-  src/               React application
+  src/App.tsx        Routes: /login and /signup are public; everything else is protected
+  src/services/api.ts  Shared axios instance, token storage, 401 handling, getErrorMessage()
+  src/types/         TypeScript interfaces matching the backend's JSON responses
+  src/context/       AuthProvider (AuthContext.tsx) and the context object (auth-context.ts)
+  src/hooks/         useAuth() and useFetch() (GET with loading, error and reload state)
+  src/components/    Shared UI: Navbar, AppLayout, ProtectedRoute, TopicSelector, forms
+  src/pages/         One component per route
+  src/utils/         Form validation mirroring the backend's rules
 ```
 
 - Database: SQLite by default (`sqlite+aiosqlite:///./alcsr.db`, created in `backend/`). Set
@@ -54,6 +60,14 @@ frontend/
   It never changes a database that already has topics, so edits to `services/seed_data/` reach
   an existing database only if you delete `alcsr.db` (development) or migrate the data.
   Every seeded PDF link points at one of four sample files in `frontend/public/resources/`.
+- Frontend auth: the JWT is kept in `localStorage` under `alcsr_token` and attached to every
+  request by `services/api.ts`. A 401 from any endpoint except `/auth/login` and `/auth/signup`
+  clears the token and signs the user out, and `ProtectedRoute` then redirects to `/login`.
+  Read the signed-in user with `useAuth()`.
+- Frontend routes: `/login`, `/signup`, `/dashboard`, `/worksheets`, `/notes`, `/exam-questions`,
+  `/past-papers`, `/mcqs`, `/challenges`. `TopicSelector` links to detail routes
+  (`/worksheets/{spec_code}`, `/notes/{spec_code}`, `/mcqs/{spec_code}`,
+  `/exam-questions/{section_slug}`) and the challenge list links to `/challenges/{slug}`.
 - CORS: only `http://localhost:5173` and `http://127.0.0.1:5173` are allowed by default
   (`CORS_ORIGINS`). The Vite dev server is pinned to port 5173 with `strictPort` to match.
 - Content taxonomy: content is organised by OCR H446 paper → section → sub-topic, for example
@@ -126,9 +140,13 @@ These are non-negotiable. Do not work around them, even temporarily.
   that can really be null. `npm run build` (which runs `tsc -b`) must pass with zero errors.
 - Clean imports: external packages first, then local modules, separated by a blank line. Use
   `import type` (or inline `type`) for type-only imports; `verbatimModuleSyntax` enforces this.
-- Function components and hooks only. One component per file, PascalCase file names for
-  components, camelCase for hooks and utilities.
-- All HTTP calls go through the shared axios instance in `src/lib/api.ts`.
+- Function components and hooks only. One exported component per file (small private helper
+  components may sit beside it), PascalCase file names for components, camelCase for hooks and
+  utilities. A component file exports only its component, so hooks and context objects live in
+  their own files.
+- All HTTP calls go through the shared axios instance in `src/services/api.ts`. Use `useFetch`
+  for simple GETs and show failures with `getErrorMessage()`. Type every response with an
+  interface from `src/types`.
 - Style with Tailwind utilities and the theme tokens in `tailwind.config.js`; do not hard-code
   hex colours in components. Compose conditional classes with `clsx`.
 
@@ -141,6 +159,8 @@ These are non-negotiable. Do not work around them, even temporarily.
   | `content-primary` | `#f4f4f5` | Primary text |
   | `content-secondary` | `#a1a1aa` | Secondary text |
 
+- Fonts are self-hosted through `@fontsource`: IBM Plex Sans (`font-sans`) for the interface and
+  IBM Plex Mono (`font-mono`) for code. Do not load fonts from an external CDN.
 - Tailwind is pinned to v3 (`tailwind.config.js`, `postcss.config.js`, `@tailwind` directives).
   Do not upgrade to v4 without migrating the configuration.
 
@@ -190,4 +210,4 @@ npm run preview
 ```
 
 Optional configuration: copy `frontend/.env.example` to `frontend/.env.local` to change
-`VITE_API_URL` (defaults to `http://localhost:8000`).
+`VITE_API_URL` (defaults to `http://localhost:8000/api/v1`).
